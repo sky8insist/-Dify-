@@ -1,0 +1,5 @@
+{
+  "name": "GovFlow - Intelligent Governance Platform",
+  "description": "A professional government backend processing system featuring an intelligent Table Agent for batch processing Excel data. Supports Dify integration, dashboard analytics, and AI-assisted case processing.",
+  "requestFramePermissions": []
+}
