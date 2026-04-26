@@ -15,7 +15,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateRegister }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call
     setTimeout(() => {
       setLoading(false);
       onLogin();

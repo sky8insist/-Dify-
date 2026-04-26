@@ -10,7 +10,6 @@ const Reports: React.FC = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [systemStats, setSystemStats] = useState({ totalRows: 0 });
 
-  // Timer for real-time clock
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -18,7 +17,6 @@ const Reports: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch real stats on mount
   useEffect(() => {
     const fetchData = async () => {
       const stats = await getSystemStats();
@@ -29,14 +27,11 @@ const Reports: React.FC = () => {
     fetchData();
   }, []);
 
-  // Generate chart data based on selected date and real stats
   useEffect(() => {
     const generateData = () => {
       const data = [];
       const baseDate = new Date(selectedDate);
       
-      // Use real stats for the latest data point ("Today")
-      // Fallback to server default (12840) if stats haven't loaded yet to avoid 0 flatline
       const currentRealVolume = systemStats.totalRows > 0 ? systemStats.totalRows : 12840;
 
       for (let i = 6; i >= 0; i--) {
@@ -44,22 +39,14 @@ const Reports: React.FC = () => {
         d.setDate(baseDate.getDate() - i);
         const dateLabel = d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
         
-        // Seed for pseudo-randomness consistency
         const seed = d.getTime();
 
-        // Stability Logic: High stability (98.0 - 99.5)
-        // Variance reduced significantly as requested
         const accuracy = 98.0 + (Math.abs(Math.sin(seed)) * 1.5);
 
-        // Volume Trend Logic (Cumulative Growth Simulation)
-        // i=0 is Today (matches currentRealVolume)
-        // i=6 is 6 days ago (simulated past data)
-        // We simulate that volume grows by approx 50-150 rows per day to create the trend line
         const daysAgo = i;
         const simulatedDeduction = Math.floor(daysAgo * 120 + (Math.abs(Math.sin(seed)) * 50));
         let dailyCumulativeVolume = currentRealVolume - simulatedDeduction;
         
-        // Ensure volume doesn't go below realistic starting baseline
         if (dailyCumulativeVolume < 5000) dailyCumulativeVolume = 5000 + daysAgo * 100;
 
         data.push({
@@ -92,7 +79,6 @@ const Reports: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Processing Volume Trend Analysis (Dual Axis: Volume & Accuracy) */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
@@ -116,10 +102,8 @@ const Reports: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b'}} dy={10} />
                 
-                {/* Left Axis for Volume */}
                 <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#8b5cf6'}} domain={['auto', 'auto']} />
                 
-                {/* Right Axis for Accuracy - Changed to Green */}
                 <YAxis yAxisId="right" orientation="right" domain={[95, 100]} axisLine={false} tickLine={false} tick={{fill: '#10b981'}} unit="%" />
                 
                 <Tooltip 
@@ -128,7 +112,6 @@ const Reports: React.FC = () => {
                 />
                 <Legend verticalAlign="top" height={36}/>
                 
-                {/* Purple Line: Processing Volume */}
                 <Line 
                   yAxisId="left"
                   type="monotone" 
@@ -141,7 +124,6 @@ const Reports: React.FC = () => {
                   isAnimationActive={true}
                 />
 
-                {/* Green Line: Accuracy */}
                 <Line 
                   yAxisId="right"
                   type="monotone" 
@@ -158,7 +140,6 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        {/* Model Stability Monitoring with Real-time Clock */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
           <div className="flex justify-between items-start mb-6">
             <h3 className="text-lg font-bold text-slate-900">模型稳定性监控</h3>

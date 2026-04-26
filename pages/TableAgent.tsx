@@ -4,7 +4,6 @@ import { FileSpreadsheet, CheckCircle, Loader2, Upload, ChevronRight, ChevronLef
 import { processTableRow, reportTaskStats, getSystemStats } from '../services/aiService';
 import * as XLSX from 'xlsx';
 
-// 定义持久化状态的类型
 interface PersistentState {
   isPanelOpen: boolean;
   fileId: string | null;
@@ -25,7 +24,6 @@ interface TableAgentProps {
 }
 
 const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
-  // 从localStorage加载持久化状态
   const loadStateFromStorage = (): PersistentState => {
     try {
       const stored = localStorage.getItem('tableAgentState');
@@ -35,7 +33,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
     } catch (error) {
       console.error('Failed to load state from localStorage:', error);
     }
-    // 默认状态
     return {
       isPanelOpen: true,
       fileId: null,
@@ -52,7 +49,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
     };
   };
 
-  // 初始化状态，优先使用localStorage中的状态
   const initialState = loadStateFromStorage();
   
   const [isPanelOpen, setIsPanelOpen] = useState(initialState.isPanelOpen);
@@ -71,7 +67,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
   const [difyDownloadLink, setDifyDownloadLink] = useState<string>(initialState.difyDownloadLink);
   const [hasError, setHasError] = useState(initialState.hasError);
   
-  // 生成或从localStorage获取userId，确保一致性
   const getUserId = (): string => {
     const storedUserId = localStorage.getItem('tableAgentUserId');
     if (storedUserId) {
@@ -84,7 +79,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
   
   const userId = getUserId();
   
-  // 当关键状态变化时，保存到localStorage
   useEffect(() => {
     const stateToPersist: PersistentState = {
       isPanelOpen,
@@ -108,14 +102,11 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
     }
   }, [isPanelOpen, fileId, conversationId, fileRowCount, rawFileData, data, processStatus, uploadStatus, showDownloadLinks, downloadLink, difyDownloadLink, hasError]);
   
-  // 重置所有状态和localStorage
   const resetAllState = () => {
     try {
-      // 清除localStorage
       localStorage.removeItem('tableAgentState');
       localStorage.removeItem('tableAgentUserId');
       
-      // 重置所有状态
       setIsPanelOpen(true);
       setFile(null);
       setData([]);
@@ -132,7 +123,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
       setDifyDownloadLink('');
       setHasError(false);
       
-      // 清理文件输入
       const inputElement = document.getElementById('file-upload') as HTMLInputElement;
       if (inputElement) {
         inputElement.value = '';
@@ -144,10 +134,8 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
     }
   };
   
-  // Handling stats
   const startTimeRef = useRef<number>(0);
 
-  // Handle drag and drop events
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.currentTarget.classList.add('border-blue-500');
@@ -169,11 +157,9 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
     if (droppedFile) {
       const inputElement = document.getElementById('file-upload') as HTMLInputElement;
       if (inputElement) {
-        // Create a FileList with the dropped file
         const fileList = new DataTransfer();
         fileList.items.add(droppedFile);
         inputElement.files = fileList.files;
-        // Trigger the change event
         inputElement.dispatchEvent(new Event('change'));
       }
     }
@@ -182,17 +168,17 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
     if (!uploadedFile) return;
-
+  //重置
     setFile(uploadedFile);
-    setIsProcessing(true); // Temporarily block while uploading
+    setIsProcessing(true); 
     setProcessStatus('idle');
     setProgress(0);
     setUploadStatus('uploading');
-    setFileRowCount(null); // 重置行数
-    setData([]); // 清空之前的处理结果
+    setFileRowCount(null); 
+    setData([]); 
 
     try {
-      // 读取文件内容并计算行数
+      // 读取文件计算行数
       const reader = new FileReader();
       await new Promise<void>((resolve, reject) => {
         reader.onload = (e) => {
@@ -202,31 +188,27 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // 使用sheet_to_json计算行数时，要注意：
-            // - header: 1 返回二维数组，包含所有行
-            // - range: undefined 处理整个工作表
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
               header: 1, 
               range: undefined 
             });
             
-            // 过滤掉空行
             const nonEmptyRows = jsonData.filter(row => 
               row.some(cell => cell !== null && cell !== undefined && cell !== '')
             );
             
-            // 计算实际行数：显示包含表头的真实总行数
+            // 计算实际行数
             const rowCount = nonEmptyRows.length;
               
             console.log(`文件行数统计: 总行数=${jsonData.length}, 非空行=${nonEmptyRows.length}, 实际行数=${rowCount}`);
             setFileRowCount(rowCount);
             
-            // 保存原始文件内容预览
+            // 内容预览
             setRawFileData(jsonData);
             resolve();
           } catch (error) {
             console.error("Error reading file:", error);
-            // 读取失败时应该拒绝Promise，让外层try/catch处理错误
+            // 读取失败处理
             reject(error); 
           }
         };
@@ -234,7 +216,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
         reader.readAsArrayBuffer(uploadedFile);
       });
 
-      // Upload file to backend with timeout
       const formData = new FormData();
       formData.append('file', uploadedFile);
       formData.append('userId', userId);
@@ -244,7 +225,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
         body: formData
       });
 
-      // 添加30秒超时
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('文件上传超时')), 30000)
       );
@@ -264,9 +244,8 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
       console.error("Error uploading file:", error);
       setUploadStatus('error');
     } finally {
-      // 确保在任何情况下都重置isProcessing状态
       setIsProcessing(false);
-      // 清理文件输入，允许重新选择相同文件
+      // 清理文件输入
       const inputElement = document.getElementById('file-upload') as HTMLInputElement;
       if (inputElement) {
         inputElement.value = '';
@@ -274,7 +253,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
     }
   };
 
-  // Removed auto-start processing - now requires manual button click
 
   const runBatchProcessing = async () => {
     if (isProcessing || !fileId) return; // Prevent double trigger
@@ -284,14 +262,12 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
     setProgress(0);
     setHasError(false);
     
-    // Record Start Time
     startTimeRef.current = Date.now();
     
-    // 处理开始时清空原始文件预览，显示处理进度
     setRawFileData(null);
 
     try {
-        // 使用Dify聊天接口处理文件
+        // 使用Dify聊天接口处
         const res = await fetch('/api/chat', {
             method: 'POST',
             headers: {
@@ -308,19 +284,17 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
         const data = await res.json();
         console.log("Dify聊天接口处理结果:", data);
         
-        // 更新conversationId，如果API返回了新的
         if (data.conversation_id) {
           console.log(`更新conversationId: ${conversationId} -> ${data.conversation_id}`);
           setConversationId(data.conversation_id);
         }
         
-        // 模拟处理进度
         for (let i = 0; i <= 100; i += 10) {
             await new Promise(resolve => setTimeout(resolve, 200));
             setProgress(i);
         }
         
-        // 解析Dify返回的结果
+        //Dify返回的结果
         let processedData = [];
         
         if (data && data.reply) {
@@ -330,8 +304,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
             // 检查是否包含下载链接
             const replyText = data.reply;
             
-            // 尝试提取下载链接
-            // 支持多种链接格式
             const linkRegex = /(?:href="|如果无法下载可以通过链接手动下载：\s+|\[output\.xlsx\]\()(https?:\/\/[^\s"\)]+\.xlsx[^"\)]*|\/[^\s"\)]+\.xlsx[^"\)]*)(?:"|\)|\s)/i;
             const match = replyText.match(linkRegex);
             
@@ -341,7 +313,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                 console.log("提取到的下载链接:", extractedDownloadLink);
                 setDifyDownloadLink(extractedDownloadLink);
             } else {
-                // 尝试更宽松的匹配
                 const looseRegex = /(https?:\/\/[^\s]+\.xlsx\?[^\s]+|\/[^\s]+\.xlsx\?[^\s]+)/i;
                 const looseMatch = replyText.match(looseRegex);
                 if (looseMatch) {
@@ -352,10 +323,8 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
             }
             
             try {
-                // 尝试解析Dify返回的JSON数组（如果它是JSON格式）
                 const jsonResult = JSON.parse(replyText);
                 if (Array.isArray(jsonResult)) {
-                    // 如果是数组，创建表格数据
                     processedData = jsonResult.map((item, index) => ({
                         id: index + 1,
                         content: item.original || `行 ${index + 1}`,
@@ -364,7 +333,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                         status: "completed" as const
                     }));
                     
-                    // 如果找到了下载链接，将其添加到表格数据的最后一行
                     if (extractedDownloadLink) {
                         processedData.push({
                             id: processedData.length + 1,
@@ -375,7 +343,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                         });
                     }
                 } else {
-                    // 如果不是数组，创建单行数据
                     processedData = [{
                         id: 1,
                         content: file?.name || "已上传文件",
@@ -385,7 +352,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                     }];
                 }
             } catch (jsonError) {
-                // 如果不是JSON格式，创建单行数据
             processedData = [{
                 id: 1,
                 content: file?.name || "已上传文件",
@@ -395,7 +361,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
             }];
             }
         } else {
-            // 默认情况
             processedData = [{
                 id: 1,
                 content: file?.name || "已上传文件",
@@ -405,19 +370,14 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
             }];
         }
         
-        // 设置处理后的数据
         setData(processedData);
         
-       // 使用上传时计算的行数，保持数据一致性
-        // 不再根据是否添加表头调整行数，避免显示不一致
         
-        // Record End Time
         const endTime = Date.now();
         const durationMs = endTime - startTimeRef.current;
         
         setProcessStatus('completed');
         
-        // 触发文件处理完成通知
         console.log('文件处理完成，尝试触发通知...');
         console.log('onFileProcessed是否存在:', typeof onFileProcessed);
         if (onFileProcessed) {
@@ -427,11 +387,8 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
           console.log('onFileProcessed函数不存在');
         }
         
-        // Report Stats
-        // 这里可以根据需要报告真实文件行数或处理的行数
         await reportTaskStats(fileRowCount || processedData.length, durationMs);
         
-        // 获取系统统计数据
         const stats = await getSystemStats();
         console.log("系统统计数据:", stats);
     } catch (error) {
@@ -443,10 +400,8 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
     }
   };
 
-  // 测试下载链接是否有效的函数
   const testDownloadLink = async (url: string): Promise<boolean> => {
     try {
-      // 使用HEAD请求测试链接，只获取 headers，不下载内容
       const response = await fetch(url, {
         method: 'HEAD',
         cache: 'no-cache',
@@ -461,7 +416,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
 
   // 重新获取下载链接的函数
   const refreshDownloadLink = async () => {
-    // 检查会话信息是否完整
     const isFileIdValid = fileId && fileId.trim() !== '';
     const isConversationIdValid = conversationId && conversationId.trim() !== '';
     
@@ -503,17 +457,13 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
       console.log("重新获取Dify聊天接口处理结果:", dataResult);
       
       if (dataResult && dataResult.reply) {
-        // 记录Dify的原始回复内容
         console.log("Dify原始回复:", dataResult.reply);
         
-        // 尝试提取下载链接 - 使用更健壮的正则表达式
         const replyText = dataResult.reply;
         
-        // 先尝试精确匹配
         let linkRegex = /(?:href="|如果无法下载可以通过链接手动下载：\s+|\[output\.xlsx\]\()(https?:\/\/[^\s"\)]+\.xlsx[^"\)]*|\/[^\s"\)]+\.xlsx[^"\)]*)(?:"|\)|\s)/i;
         let match = replyText.match(linkRegex);
         
-        // 如果精确匹配失败，尝试更宽松的匹配
         if (!match || !match[1]) {
           console.log("精确匹配失败，尝试宽松匹配");
           linkRegex = /(https?:\/\/[^\s"]*\.xlsx[^\s"]*|\/[^\s"]*\.xlsx[^\s"]*)/gi;
@@ -525,20 +475,15 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
         
         let extractedDownloadLink = "";
         if (match) {
-          // 如果是数组匹配结果，取第一个
           extractedDownloadLink = Array.isArray(match) ? (match[1] || match[0]) : match;
           console.log("提取到的下载链接:", extractedDownloadLink);
           
-          // 确保链接格式正确，移除可能的引号或括号
           extractedDownloadLink = extractedDownloadLink.replace(/^["\'\(]+|[\"\')]+$/g, '');
           
-          // 检查是否是完整URL
           let finalUrl;
           if (extractedDownloadLink.startsWith('http://') || extractedDownloadLink.startsWith('https://')) {
-            // 如果是完整URL，提取路径部分
             try {
               const url = new URL(extractedDownloadLink);
-              // 使用后端代理地址 + 路径，确保通过代理下载
               finalUrl = `${url.pathname}${url.search}`;
               console.log("构建的最终链接:", finalUrl);
             } catch (urlError) {
@@ -546,19 +491,16 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
               finalUrl = extractedDownloadLink;
             }
           } else {
-            // 如果是相对路径，直接使用
             finalUrl = extractedDownloadLink;
             console.log("使用相对路径:", finalUrl);
           }
           
-          // 更新下载链接状态
           setDifyDownloadLink(finalUrl);
           setDownloadLink(finalUrl);
           alert("下载链接已更新，请重新尝试下载");
         } else {
           console.log("未能从Dify响应中提取有效的下载链接");
           alert("未能从Dify响应中提取有效的下载链接\n请查看控制台日志了解详细信息");
-          // 显示原始响应，帮助调试
           alert("Dify原始响应内容:\n" + replyText);
         }
       } else if (dataResult && dataResult.error) {
@@ -579,12 +521,9 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
   const handleDownload = async () => {
     if (data.length === 0) return;
 
-    // 优先使用difyDownloadLink状态变量中的下载链接
     let excelUrl = difyDownloadLink;
     
-    // 如果difyDownloadLink为空，再尝试从最后一行结果中提取
     if (!excelUrl) {
-      // 检查是否有Dify输出的Excel下载链接
       const lastRow = data[data.length - 1];
       const result = lastRow.result;
       
@@ -594,7 +533,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
       const excelLinkRegex = /(?:href="|如果无法下载可以通过链接手动下载：\s+|\[output\.xlsx\]\()(https?:\/\/[^\s"\)]+\.xlsx[^"\)]*|\/[^\s"\)]+\.xlsx[^"\)]*)(?:"|\)|\s)/gi;
       let matches;
       
-      // 查找所有匹配的链接
       while ((matches = excelLinkRegex.exec(result)) !== null) {
         if (matches[1]) {
           excelUrl = matches[1];
@@ -603,7 +541,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
         }
       }
       
-      // 额外检查：如果直接匹配失败，尝试更宽松的匹配
       if (!excelUrl) {
         const looseRegex = /(https?:\/\/[^\s]+\.xlsx\?[^\s]+|\/[^\s]+\.xlsx\?[^\s]+)/gi;
         const looseMatch = looseRegex.exec(result);
@@ -623,15 +560,11 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
         
         console.log("处理后的Excel链接:", excelUrl);
         
-        // 检查是否是完整URL
         let finalUrl;
         if (excelUrl.startsWith('http://') || excelUrl.startsWith('https://')) {
-          // 如果是完整URL，提取路径部分
           const url = new URL(excelUrl);
-          // 使用后端代理地址 + 路径，确保通过代理下载
           finalUrl = `${url.pathname}${url.search}`;
         } else {
-          // 如果是相对路径，使用后端代理地址 + 相对路径
           finalUrl = excelUrl;
         }
         
@@ -659,11 +592,9 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
         
         if (response.ok) {
           console.log("文件下载成功，开始生成Excel文件...");
-          // 获取文件内容并创建Blob对象
           const blob = await response.blob();
           const url = window.URL.createObjectURL(blob);
           
-          // 创建a标签并模拟点击来直接下载文件
           const a = document.createElement('a');
           a.href = url;
           a.download = `Dify_Export_${new Date().getTime()}.xlsx`;
@@ -671,14 +602,13 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
           a.click();
           document.body.removeChild(a);
           
-          // 释放URL对象
           window.URL.revokeObjectURL(url);
           
           console.log("已直接下载Dify输出的Excel文件");
           return;
         } else {
           console.log("文件下载失败，状态码:", response.status);
-          // 如果链接失效，询问用户是否要重新获取链接
+
           if (confirm(`下载链接已失效，是否重新获取链接？\n错误: HTTP状态 ${response.status}`)) {
             await refreshDownloadLink();
           } else {
@@ -687,7 +617,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
         }
       } catch (error) {
         console.error("下载Dify输出的Excel文件时出错:", error);
-        // 如果是超时或网络错误，提供重新获取链接的选项
         if (error instanceof Error && (error.message.includes('超时') || error.message.includes('NetworkError'))) {
           if (confirm(`下载链接可能已超时或失效，是否重新获取链接？\n错误: ${error.message}`)) {
             await refreshDownloadLink();
@@ -701,7 +630,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
       console.log("未找到Excel链接，将使用本地生成的Excel文件");
     }
     
-    // 如果没有找到Excel链接或运行失败，回退到本地生成Excel
     const exportData = [
       ['ID', '原始内容', '处理指令', 'AI处理结果', '状态'],
       ...data.map(row => [row.id, row.content, row.instruction, row.result, row.status])
@@ -813,7 +741,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
 
           {isPanelOpen && (
             <div className="flex-1 p-4 flex flex-col gap-6 overflow-y-auto">
-                {/* Upload Section */}
                 <div className="space-y-3">
                     <label className="text-sm font-medium text-slate-700 block">1. 上传文档</label>
                     <div 
@@ -847,7 +774,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                     </div>
                 </div>
 
-                {/* Start Processing Button */}
                 {fileId && uploadStatus === 'success' && (
                     <div className="space-y-3">
                         <label className="text-sm font-medium text-slate-700 block">2. 开始处理</label>
@@ -871,7 +797,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                     </div>
                 )}
 
-                {/* Reset Button */}
                 {(fileId || data.length > 0) && (
                     <div className="space-y-3">
                         <button 
@@ -883,7 +808,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                     </div>
                 )}
                 
-                {/* Status Section */}
                 {(file || fileId) && (
                     <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
                          <div className="flex justify-between items-center">
@@ -931,17 +855,14 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                                  </button>
                                  <button 
                                     onClick={async () => {
-                                      // 如果还没有下载链接，先尝试提取
                                       if (!downloadLink && data.length > 0) {
                                         const lastRow = data[data.length - 1];
                                         const result = lastRow.result;
                                         
-                                        // 更强大的正则表达式，匹配各种格式的Excel下载链接
                                         const excelLinkRegex = /(?:href="|如果无法下载可以通过链接手动下载：\s+|\[output\.xlsx\]\()(https?:\/\/[^\s"\)]+\.xlsx[^"\)]*|\/[^\s"\)]+\.xlsx[^"\)]*)(?:"|\)|\s)/gi;
                                         let matches;
                                         let excelUrl = null;
                                         
-                                        // 查找所有匹配的链接
                                         while ((matches = excelLinkRegex.exec(result)) !== null) {
                                           if (matches[1]) {
                                             excelUrl = matches[1];
@@ -950,7 +871,6 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                                           }
                                         }
                                         
-                                        // 额外检查：如果直接匹配失败，尝试更宽松的匹配
                                         if (!excelUrl) {
                                           const looseRegex = /(https?:\/\/[^\s]+\.xlsx\?[^\s]+|\/[^\s]+\.xlsx\?[^\s]+)/gi;
                                           const looseMatch = looseRegex.exec(result);
@@ -961,32 +881,24 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                                         }
                                         
                                         if (excelUrl) {
-                                          // 确保链接格式正确，移除可能的引号或括号
                                           excelUrl = excelUrl.replace(/^["\'\(]+|["\'\)]+$/g, '');
                                           
-                                          // 检查是否是完整URL
                                           let finalUrl;
                                           if (excelUrl.startsWith('http://') || excelUrl.startsWith('https://')) {
-                                            // 如果是完整URL，提取路径部分
                                             const url = new URL(excelUrl);
-                                            // 使用后端代理地址 + 路径，确保通过代理下载
                                             finalUrl = `${url.pathname}${url.search}`;
                                           } else {
-                                            // 如果是相对路径，使用后端代理地址 + 相对路径
                                             finalUrl = excelUrl;
                                           }
                                           
                                           setDownloadLink(finalUrl);
-                                          // 如果是第一次提取链接，直接显示
                                           if (!showDownloadLinks) {
                                             setShowDownloadLinks(true);
                                           }
                                         } else {
-                                          // 如果没有找到链接，也显示状态，让用户知道
                                           alert('未找到有效的Excel下载链接');
                                         }
                                       } else {
-                                        // 如果已经有链接了，直接切换显示状态
                                         setShowDownloadLinks(!showDownloadLinks);
                                       }
                                     }}
@@ -1012,10 +924,7 @@ const TableAgent: React.FC<TableAgentProps> = ({ onFileProcessed }) => {
                                              target="_blank" 
                                              rel="noopener noreferrer"
                                              className="text-xs text-blue-600 hover:underline break-all"
-                                             // 添加onerror事件处理，但注意a标签的onerror事件不是标准事件
-                                             // 这里使用onclick事件来处理可能的导航失败
                                              onClick={(e) => {
-                                                 // 可以在这里添加点击跟踪，如果导航失败可以处理
                                                  console.log("点击下载链接:", downloadLink);
                                              }}
                                          >

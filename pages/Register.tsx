@@ -13,7 +13,6 @@ const Register: React.FC<RegisterProps> = ({ onRegister, onNavigateLogin }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call
     setTimeout(() => {
       setLoading(false);
       onRegister();

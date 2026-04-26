@@ -4,17 +4,14 @@ import { testDifyConnection } from '../services/aiService';
 import { DIFY_CONFIG } from '../constants';
 
 const Settings: React.FC = () => {
-  // State for form fields
   const [mode, setMode] = useState('dify');
     const [difyEndpoint, setDifyEndpoint] = useState(DIFY_CONFIG.BASE_URL);
     const [difyApiKey, setDifyApiKey] = useState(DIFY_CONFIG.API_KEY);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   
-  // Test Connection State
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testMsg, setTestMsg] = useState('');
 
-  // Load settings from localStorage on mount
   useEffect(() => {
     const savedMode = localStorage.getItem('govflow_mode');
     const savedEndpoint = localStorage.getItem('govflow_dify_endpoint');
@@ -32,7 +29,6 @@ const Settings: React.FC = () => {
     localStorage.setItem('govflow_dify_endpoint', difyEndpoint);
     localStorage.setItem('govflow_dify_key', difyApiKey);
 
-    // Simulate network delay for UX
     setTimeout(() => {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
@@ -40,11 +36,9 @@ const Settings: React.FC = () => {
   };
 
   const handleTestConnection = async () => {
-    // 如果是Mock模式，直接返回成功
     if (mode === 'mock') {
         setTestStatus('success');
         setTestMsg('Mock模式连接成功');
-        // 5秒后自动清除成功消息
         setTimeout(() => {
             setTestStatus('idle');
             setTestMsg('');
@@ -61,13 +55,11 @@ const Settings: React.FC = () => {
     setTestStatus('testing');
     setTestMsg('正在连接...');
     
-    // Pass current state values to test function
     const result = await testDifyConnection(difyApiKey, difyEndpoint);
     
     if (result.success) {
         setTestStatus('success');
         setTestMsg(result.message);
-        // Auto clear success message after 5s
         setTimeout(() => {
             setTestStatus('idle');
             setTestMsg('');
@@ -140,7 +132,6 @@ const Settings: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Connection Test Section */}
                 <div className="md:col-span-2">
                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
                         <div className="flex items-center gap-2">

@@ -20,12 +20,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   const fetchStats = async () => {
     setLoading(true);
-    // Minimal delay to show the spinner (UX)
     await new Promise(r => setTimeout(r, 500));
     
     const data = await getSystemStats();
     if (data) {
-      // Calculate Average Time: Total Duration (ms) / Total Rows / 1000 = Seconds per row
       const avgTimeSec = data.totalRows > 0 
           ? (data.totalDurationMs / data.totalRows / 1000).toFixed(2) 
           : '0.00';
@@ -39,7 +37,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   };
 
   const resetStats = async () => {
-    // Show custom confirm modal instead of window.confirm
     setShowConfirmModal(true);
   };
 
@@ -56,7 +53,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       if (response.ok) {
         const data = await response.json();
-        // Update UI with reset stats
         setStatsData({
           volume: data.currentStats.totalRows.toLocaleString(),
           avgTime: '0.00'
@@ -74,10 +70,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     setShowConfirmModal(false);
   };
 
-  // Fetch on mount
   useEffect(() => {
     fetchStats();
-    // Auto-poll every 5 seconds to keep it fresh
     const interval = setInterval(() => {
         getSystemStats().then(data => {
             if (data) {
@@ -109,7 +103,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Custom Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
@@ -157,14 +150,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {stats.map((item, idx) => (
           <StatCard key={idx} metric={item.metric} icon={item.icon} colorClass={item.color} />
         ))}
       </div>
 
-      {/* Core Navigation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div 
             onClick={() => onNavigate('/table-agent')}
@@ -191,7 +182,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
         </div>
 
-        {/* Reports Card - Disabled / Coming Soon */}
         <div 
             className="group relative bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm opacity-90 cursor-not-allowed overflow-hidden"
         >
